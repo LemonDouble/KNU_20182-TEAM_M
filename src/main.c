@@ -17,19 +17,30 @@
  */
 #include <stdlib.h>
 #include <ncurses.h>
+#include <string.h>
 #include <signal.h>
 #include <sys/time.h>
 #include "snake.h"
-
+#include "client.h"
 
 snake *mysnake;
 screen *myscreen;
 
+#define SERVERADDRESS "54.180.71.148"
+#define SERVERPORT "9872"
 
 void move_snake(int);
 int set_ticker(int);
 
+char userName[21] = {0,};  //user's name (scoreboard name)
+char scoreChar[21] = {0,};
+int score = 0;
+char scoreStructure[42] = {0,}; //structure to send server!!
 int main(){
+
+  printf("What is your name?(Max 20 char) : ");
+  scanf("%s",userName);
+
   initscr(); // to use ncurses lib
   cbreak(), crmode(); noecho(); //buffering off, echo mode off
   keypad(stdscr, TRUE); // to use arrow keys
@@ -62,6 +73,8 @@ int main(){
   }
   getch();
   endwin();
+  
+  return 0;
 }
 
 void move_snake(int signum){
@@ -98,14 +111,32 @@ void move_snake(int signum){
   //border check
   if(nextMovingPoint->x < 0 || nextMovingPoint->x > myscreen->xmax || nextMovingPoint->y < 0 || nextMovingPoint->y > myscreen->ymax){
     endwin();
-    fprintf(stderr,"you lose! out of border!\n");
-    exit(1);
+    fprintf(stderr,"you lose! out of border!\n"); 
+  for(int i = 0 ; i < strlen(userName); i++){
+    if(userName[i] == 32){ //if space exist, make sending error
+      userName[i] = 95; // so replace space to underbar '_'
+    }
+  }
+
+  userName[strlen(userName)] = 32;
+  userName[strlen(userName) + 1] = 0; //userName + space
+
+  sprintf(scoreChar,"%d",score); //itoa is not standard function. so use sprintf
+
+  strcat(scoreStructure,userName);
+  strcat(scoreStructure,scoreChar);
+
+  puts(scoreStructure);
+
+  sendScoreToServer(scoreStructure, SERVERADDRESS, SERVERPORT);
+
+  exit(1);
   }
 
   //food check
   if(nextMovingPoint->x == myscreen->food.list->x && nextMovingPoint->y == myscreen->food.list->y){
     get_new_food(myscreen, mysnake);
-    
+    score += 50;
   }else{
     mysnake->head = mysnake->head->next;
     free(deleteTmp);

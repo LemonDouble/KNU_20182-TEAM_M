@@ -26,49 +26,38 @@
 #include<arpa/inet.h>
 #include<unistd.h>
 
-#define MAXLINE 511
-#define BLOCK 255
 
-struct sockaddr_in servaddr;
-int addrlen = sizeof(servaddr);
-
-void sendMessage(int s,char *buf)
+int sendMessage(int s,char *buf, struct sockaddr_in *servaddr,int addrlen)
 {
 
-    if((sendto(s, buf, strlen(buf), 0, (struct sockaddr *)&servaddr, addrlen)) < 0)
+    if((sendto(s, buf, strlen(buf), 0, (struct sockaddr *)servaddr, addrlen)) < 0)
     {
         perror("sendto fail");
-        exit(0);
-            }
+        return -1;
+    }
 }
 
-int main(int argc,char *argv[])
-{
-        int s;
-        int nbyte;
-        char buf[MAXLINE+1];
+int sendScoreToServer(char *sendScore, char *serverAddress, char *serverPort)
+{    
+  struct sockaddr_in servaddr;
+  int addrlen = sizeof(servaddr);
+        int sendSocket;
 
-        if(argc!=3)
-        {
-                printf("Usage : %s address port\n",argv[0]);
-                exit(0);
-        }
-
-        if((s=socket(PF_INET,SOCK_DGRAM,0))<0)
+        if((sendSocket=socket(PF_INET,SOCK_DGRAM,0))<0)
         {
                 perror("socket fail\n");
-                exit(0);
+                return 0;
         }
 
         memset(&servaddr,0,addrlen);
         servaddr.sin_family = AF_INET;
-        servaddr.sin_addr.s_addr = inet_addr(argv[1]);
-        servaddr.sin_port = htons(atoi(argv[2]));
+        servaddr.sin_addr.s_addr = inet_addr(serverAddress);
+        servaddr.sin_port = htons(atoi(serverPort));
 
-        fgets(buf,BLOCK,stdin);
-        printf("Send : %s\n",buf);
-
-        sendMessage(s,buf);
-        close(s);
+        
+        if(sendMessage(sendSocket,sendScore,&servaddr,addrlen) != -1){
+          printf("Your score send! Thanks!! : %s\n",sendScore);
+        }
+        close(sendSocket);
 }
 
